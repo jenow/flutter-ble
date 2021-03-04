@@ -198,7 +198,9 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Text('NOTIFY', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 characteristic.value.listen((value) {
-                  widget.readValues[characteristic.uuid] = value;
+                  setState(() {
+                    widget.readValues[characteristic.uuid] = value;
+                  });
                 });
                 await characteristic.setNotifyValue(true);
               },
