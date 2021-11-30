@@ -17,12 +17,13 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
+  // const MyHomePage({Key? key}) : super(key: key);
   MyHomePage({Key key, this.title}) : super(key: key);
 
   final String title;
   final FlutterBlue flutterBlue = FlutterBlue.instance;
-  final List<BluetoothDevice> devicesList = new List<BluetoothDevice>();
-  final Map<Guid, List<int>> readValues = new Map<Guid, List<int>>();
+  final List<BluetoothDevice> devicesList = <BluetoothDevice>[];
+  final Map<Guid, List<int>> readValues = Map<Guid, List<int>>();
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -60,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildListViewOfDevices() {
-    List<Container> containers = new List<Container>();
+    List<Container> containers = <Container>[];
     for (BluetoothDevice device in widget.devicesList) {
       containers.add(
         Container(
@@ -75,8 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              FlatButton(
-                color: Colors.blue,
+              TextButton(
                 child: Text(
                   'Connect',
                   style: TextStyle(color: Colors.white),
@@ -86,7 +86,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   try {
                     await device.connect();
                   } catch (e) {
-                    if (e.code != 'already_connected') {
+                    if (e.hashCode != 'already_connected') {
                       throw e;
                     }
                   } finally {
@@ -113,7 +113,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<ButtonTheme> _buildReadWriteNotifyButton(
       BluetoothCharacteristic characteristic) {
-    List<ButtonTheme> buttons = new List<ButtonTheme>();
+    List<ButtonTheme> buttons = <ButtonTheme>[];
 
     if (characteristic.properties.read) {
       buttons.add(
@@ -146,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
+            child: ElevatedButton(
               child: Text('WRITE', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 await showDialog(
@@ -164,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ],
                         ),
                         actions: <Widget>[
-                          FlatButton(
+                          TextButton(
                             child: Text("Send"),
                             onPressed: () {
                               characteristic.write(
@@ -172,7 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Navigator.pop(context);
                             },
                           ),
-                          FlatButton(
+                          TextButton(
                             child: Text("Cancel"),
                             onPressed: () {
                               Navigator.pop(context);
@@ -194,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
+            child: ElevatedButton(
               child: Text('NOTIFY', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 characteristic.value.listen((value) {
@@ -212,10 +212,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildConnectDeviceView() {
-    List<Container> containers = new List<Container>();
+    List<Container> containers = <Container>[];
 
     for (BluetoothService service in _services) {
-      List<Widget> characteristicsWidget = new List<Widget>();
+      List<Widget> characteristicsWidget = <Widget>[];
 
       for (BluetoothCharacteristic characteristic in service.characteristics) {
         characteristicsWidget.add(
