@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   // const MyHomePage({Key? key}) : super(key: key);
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
   final FlutterBlue flutterBlue = FlutterBlue.instance;
@@ -31,8 +31,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _writeController = TextEditingController();
-  BluetoothDevice _connectedDevice;
-  List<BluetoothService> _services;
+  BluetoothDevice? _connectedDevice;
+  List<BluetoothService> _services = [];
 
   _addDeviceTolist(final BluetoothDevice device) {
     if (!widget.devicesList.contains(device)) {
@@ -122,8 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
-              color: Colors.blue,
+            child: TextButton(
               child: Text('READ', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 var sub = characteristic.value.listen((value) {
