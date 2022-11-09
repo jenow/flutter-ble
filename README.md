@@ -1,3 +1,3 @@
-# Flutter BLE demo
+# flutter_ble
 
-This is a usage example of flutter_blue by writing an nRF connect like app.
+A Flutter project that uses Bluetooth BLE with flutter_blue_plus library.

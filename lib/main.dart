@@ -1,11 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) => MaterialApp(
         title: 'BLE Demo',
@@ -17,19 +20,18 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  // const MyHomePage({Key? key}) : super(key: key);
   MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
-  final FlutterBlue flutterBlue = FlutterBlue.instance;
+  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   final List<BluetoothDevice> devicesList = <BluetoothDevice>[];
-  final Map<Guid, List<int>> readValues = Map<Guid, List<int>>();
+  final Map<Guid, List<int>> readValues = <Guid, List<int>>{};
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  MyHomePageState createState() => MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class MyHomePageState extends State<MyHomePage> {
   final _writeController = TextEditingController();
   BluetoothDevice? _connectedDevice;
   List<BluetoothService> _services = [];
@@ -61,10 +63,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildListViewOfDevices() {
-    List<Container> containers = <Container>[];
+    List<Widget> containers = <Widget>[];
     for (BluetoothDevice device in widget.devicesList) {
       containers.add(
-        Container(
+        SizedBox(
           height: 50,
           child: Row(
             children: <Widget>[
@@ -77,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               TextButton(
-                child: Text(
+                child: const Text(
                   'Connect',
                   style: TextStyle(color: Colors.white),
                 ),
@@ -85,9 +87,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   widget.flutterBlue.stopScan();
                   try {
                     await device.connect();
-                  } catch (e) {
-                    if (e.hashCode != 'already_connected') {
-                      throw e;
+                  } on PlatformException catch (e) {
+                    if (e.code != 'already_connected') {
+                      rethrow;
                     }
                   } finally {
                     _services = await device.discoverServices();
@@ -123,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: TextButton(
-              child: Text('READ', style: TextStyle(color: Colors.white)),
+              child: const Text('READ', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 var sub = characteristic.value.listen((value) {
                   setState(() {
@@ -146,13 +148,13 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ElevatedButton(
-              child: Text('WRITE', style: TextStyle(color: Colors.white)),
+              child: const Text('WRITE', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 await showDialog(
                     context: context,
                     builder: (BuildContext context) {
                       return AlertDialog(
-                        title: Text("Write"),
+                        title: const Text("Write"),
                         content: Row(
                           children: <Widget>[
                             Expanded(
@@ -164,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         actions: <Widget>[
                           TextButton(
-                            child: Text("Send"),
+                            child: const Text("Send"),
                             onPressed: () {
                               characteristic.write(
                                   utf8.encode(_writeController.value.text));
@@ -172,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                           ),
                           TextButton(
-                            child: Text("Cancel"),
+                            child: const Text("Cancel"),
                             onPressed: () {
                               Navigator.pop(context);
                             },
@@ -194,7 +196,8 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ElevatedButton(
-              child: Text('NOTIFY', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('NOTIFY', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 characteristic.value.listen((value) {
                   setState(() {
@@ -213,7 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildConnectDeviceView() {
-    List<Container> containers = <Container>[];
+    List<Widget> containers = <Widget>[];
 
     for (BluetoothService service in _services) {
       List<Widget> characteristicsWidget = <Widget>[];
@@ -227,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 Row(
                   children: <Widget>[
                     Text(characteristic.uuid.toString(),
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Row(
@@ -237,22 +240,19 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Row(
                   children: <Widget>[
-                    Text('Value: ' +
-                        widget.readValues[characteristic.uuid].toString()),
+                    Text('Value: ${widget.readValues[characteristic.uuid]}'),
                   ],
                 ),
-                Divider(),
+                const Divider(),
               ],
             ),
           ),
         );
       }
       containers.add(
-        Container(
-          child: ExpansionTile(
-              title: Text(service.uuid.toString()),
-              children: characteristicsWidget),
-        ),
+        ExpansionTile(
+            title: Text(service.uuid.toString()),
+            children: characteristicsWidget),
       );
     }
 
