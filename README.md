@@ -5,7 +5,7 @@ Do you want to play with your IoT devices using Bluetooth, but you cannot put an
 Is it for Android or iOS? Both! We are going to use Flutter as a development framework for mobile app. We are going to write an nRF connect light where we will be able to scan, connect, read and write on devices. 
  
 
-There is no official documentation about using Bluetooth with Flutter, simply because it is not officially supported by the framework, that’s why we are going to use [flutter_blue](https://pub.dev/packages/flutter_blue) as a dependency.
+There is no official documentation about using Bluetooth with Flutter, simply because it is not officially supported by the framework, that’s why we are going to use [flutter_blue_plus](https://pub.dev/packages/flutter_blue_plus) as a dependency.
 
 # Add flutter_blue_plus as dependency
 
