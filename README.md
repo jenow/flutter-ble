@@ -32,9 +32,14 @@ We need to add the permission to use Bluetooth and access location:
 In the AndroidManifest.xml let’s add:
 
 ```xml
+<uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.BLUETOOTH" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 ```
 
 ## iOS
@@ -141,23 +146,57 @@ Now let’s fill it in by starting a scan inside the initState method of _MyHome
 ⚠️ When starting a scan you will only list the devices which are not already connected. So we are also going to add the connected devices to our list by accessing the connectedDevices attribute of our FlutterBlue instance.
 
 ```dart
- @override
- void initState() {
-   super.initState();
-   widget.flutterBlue.connectedDevices
-       .asStream()
-       .listen((List<BluetoothDevice> devices) {
-     for (BluetoothDevice device in devices) {
-       _addDeviceTolist(device);
-     }
-   });
-   widget.flutterBlue.scanResults.listen((List<ScanResult> results) {
-     for (ScanResult result in results) {
-       _addDeviceTolist(result.device);
-     }
-   });
-   widget.flutterBlue.startScan();
- }
+  @override
+  void initState() {
+    () async {
+      var status = await Permission.location.status;
+      if (status.isDenied) {
+        final status = await Permission.location.request();
+        if (status.isGranted || status.isLimited) {
+          _initBluetooth();
+        }
+      } else if (status.isGranted || status.isLimited) {
+        _initBluetooth();
+      }
+
+      if (await Permission.location.status.isPermanentlyDenied) {
+        openAppSettings();
+      }
+    }();
+    super.initState();
+  }
+```
+
+and here is the _initBluetooth method:
+
+```dart
+  _initBluetooth() async {
+    var subscription = FlutterBluePlus.onScanResults.listen(
+      (results) {
+        if (results.isNotEmpty) {
+          for (ScanResult result in results) {
+            _addDeviceTolist(result.device);
+          }
+        }
+      },
+      onError: (e) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      ),
+    );
+
+    FlutterBluePlus.cancelWhenScanComplete(subscription);
+
+    await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
+
+    await FlutterBluePlus.startScan();
+
+    await FlutterBluePlus.isScanning.where((val) => val == false).first;
+    FlutterBluePlus.connectedDevices.map((device) {
+      _addDeviceTolist(device);
+    });
+  }
 ```
 
 Now our List will be filled in with devices which FlutterBlue finds by scanning.
@@ -185,7 +224,7 @@ Let’s now build our ListView with the deviceList as content:
                color: Colors.blue,
                child: Text(
                  'Connect',
-                 style: TextStyle(color: Colors.white),
+                 style: TextStyle(color: Colors.black),
                ),
                onPressed: () {},
              ),
@@ -393,7 +432,7 @@ And we add a function computing our buttons:
            padding: const EdgeInsets.symmetric(horizontal: 4),
            child: RaisedButton(
              color: Colors.blue,
-             child: Text('READ', style: TextStyle(color: Colors.white)),
+             child: Text('READ', style: TextStyle(color: Colors.black)),
              onPressed: () {},
            ),
          ),
@@ -408,7 +447,7 @@ And we add a function computing our buttons:
          child: Padding(
            padding: const EdgeInsets.symmetric(horizontal: 4),
            child: RaisedButton(
-             child: Text('WRITE', style: TextStyle(color: Colors.white)),
+             child: Text('WRITE', style: TextStyle(color: Colors.black)),
              onPressed: () {},
            ),
          ),
@@ -423,7 +462,7 @@ And we add a function computing our buttons:
          child: Padding(
            padding: const EdgeInsets.symmetric(horizontal: 4),
            child: RaisedButton(
-             child: Text('NOTIFY', style: TextStyle(color: Colors.white)),
+             child: Text('NOTIFY', style: TextStyle(color: Colors.black)),
              onPressed: () {},
            ),
          ),
@@ -452,8 +491,8 @@ Then let’s add a new Row in our _buildConnectDeviceView method to display our 
 ```dart
                Row(
                  children: <Widget>[
-                   Text('Value: ' +
-                       widget.readValues[characteristic.uuid].toString()),
+                   Expanded(child: Text('Value: ' +
+                       widget.readValues[characteristic.uuid].toString())),
                  ],
                ),
 ```
