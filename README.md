@@ -15,14 +15,14 @@ flutter pub add flutter_blue_plus
 
 # Change the minSdkVersion for Android
 
-flutter_blue_plus is compatible only from version 19 of Android SDK so you should change this in android/app/build.gradle:
+flutter_blue_plus is compatible only from version 21 of Android SDK so you should change this in android/app/build.gradle:
 
 ```groovy
 Android {
   defaultConfig {
-     minSdkVersion: 19
+     minSdkVersion: 21
 ```
- 
+
 # Add permissions for Bluetooth
 
 We need to add the permission to use Bluetooth and access location:
