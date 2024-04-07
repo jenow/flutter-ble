@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() => runApp(const MyApp());
 
@@ -23,7 +24,6 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
-  final FlutterBluePlus flutterBlue = FlutterBluePlus.instance;
   final List<BluetoothDevice> devicesList = <BluetoothDevice>[];
   final Map<Guid, List<int>> readValues = <Guid, List<int>>{};
 
@@ -44,22 +44,52 @@ class MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  _initBluetooth() async {
+    var subscription = FlutterBluePlus.onScanResults.listen(
+      (results) {
+        if (results.isNotEmpty) {
+          for (ScanResult result in results) {
+            _addDeviceTolist(result.device);
+          }
+        }
+      },
+      onError: (e) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      ),
+    );
+
+    FlutterBluePlus.cancelWhenScanComplete(subscription);
+
+    await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
+
+    await FlutterBluePlus.startScan();
+
+    await FlutterBluePlus.isScanning.where((val) => val == false).first;
+    FlutterBluePlus.connectedDevices.map((device) {
+      _addDeviceTolist(device);
+    });
+  }
+
   @override
   void initState() {
+    () async {
+      var status = await Permission.location.status;
+      if (status.isDenied) {
+        final status = await Permission.location.request();
+        if (status.isGranted || status.isLimited) {
+          _initBluetooth();
+        }
+      } else if (status.isGranted || status.isLimited) {
+        _initBluetooth();
+      }
+
+      if (await Permission.location.status.isPermanentlyDenied) {
+        openAppSettings();
+      }
+    }();
     super.initState();
-    widget.flutterBlue.connectedDevices
-        .asStream()
-        .listen((List<BluetoothDevice> devices) {
-      for (BluetoothDevice device in devices) {
-        _addDeviceTolist(device);
-      }
-    });
-    widget.flutterBlue.scanResults.listen((List<ScanResult> results) {
-      for (ScanResult result in results) {
-        _addDeviceTolist(result.device);
-      }
-    });
-    widget.flutterBlue.startScan();
   }
 
   ListView _buildListViewOfDevices() {
@@ -73,18 +103,18 @@ class MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: Column(
                   children: <Widget>[
-                    Text(device.name == '' ? '(unknown device)' : device.name),
-                    Text(device.id.toString()),
+                    Text(device.platformName == '' ? '(unknown device)' : device.advName),
+                    Text(device.remoteId.toString()),
                   ],
                 ),
               ),
               TextButton(
                 child: const Text(
                   'Connect',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () async {
-                  widget.flutterBlue.stopScan();
+                  FlutterBluePlus.stopScan();
                   try {
                     await device.connect();
                   } on PlatformException catch (e) {
@@ -113,8 +143,7 @@ class MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  List<ButtonTheme> _buildReadWriteNotifyButton(
-      BluetoothCharacteristic characteristic) {
+  List<ButtonTheme> _buildReadWriteNotifyButton(BluetoothCharacteristic characteristic) {
     List<ButtonTheme> buttons = <ButtonTheme>[];
 
     if (characteristic.properties.read) {
@@ -125,9 +154,9 @@ class MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: TextButton(
-              child: const Text('READ', style: TextStyle(color: Colors.white)),
+              child: const Text('READ', style: TextStyle(color: Colors.black)),
               onPressed: () async {
-                var sub = characteristic.value.listen((value) {
+                var sub = characteristic.lastValueStream.listen((value) {
                   setState(() {
                     widget.readValues[characteristic.uuid] = value;
                   });
@@ -148,7 +177,7 @@ class MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ElevatedButton(
-              child: const Text('WRITE', style: TextStyle(color: Colors.white)),
+              child: const Text('WRITE', style: TextStyle(color: Colors.black)),
               onPressed: () async {
                 await showDialog(
                     context: context,
@@ -168,8 +197,7 @@ class MyHomePageState extends State<MyHomePage> {
                           TextButton(
                             child: const Text("Send"),
                             onPressed: () {
-                              characteristic.write(
-                                  utf8.encode(_writeController.value.text));
+                              characteristic.write(utf8.encode(_writeController.value.text));
                               Navigator.pop(context);
                             },
                           ),
@@ -196,10 +224,9 @@ class MyHomePageState extends State<MyHomePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: ElevatedButton(
-              child:
-                  const Text('NOTIFY', style: TextStyle(color: Colors.white)),
+              child: const Text('NOTIFY', style: TextStyle(color: Colors.black)),
               onPressed: () async {
-                characteristic.value.listen((value) {
+                characteristic.lastValueStream.listen((value) {
                   setState(() {
                     widget.readValues[characteristic.uuid] = value;
                   });
@@ -229,8 +256,7 @@ class MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Text(characteristic.uuid.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(characteristic.uuid.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Row(
@@ -240,7 +266,7 @@ class MyHomePageState extends State<MyHomePage> {
                 ),
                 Row(
                   children: <Widget>[
-                    Text('Value: ${widget.readValues[characteristic.uuid]}'),
+                    Expanded(child: Text('Value: ${widget.readValues[characteristic.uuid]}')),
                   ],
                 ),
                 const Divider(),
@@ -250,9 +276,7 @@ class MyHomePageState extends State<MyHomePage> {
         );
       }
       containers.add(
-        ExpansionTile(
-            title: Text(service.uuid.toString()),
-            children: characteristicsWidget),
+        ExpansionTile(title: Text(service.uuid.toString()), children: characteristicsWidget),
       );
     }
 
